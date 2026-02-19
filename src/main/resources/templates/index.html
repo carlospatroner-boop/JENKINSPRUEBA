@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Microservicio Jenkins & Azure</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 50px;
+        }
+        .card {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 15px;
+        }
+        .header-bg {
+            background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 50% 50% / 20px;
+        }
+        .status-badge {
+            font-size: 0.9em;
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container text-center">
+    <div class="header-bg">
+        <h1 class="display-4 fw-bold">¡Hola desde Azure!</h1>
+        <p class="lead">Despliegue Automático con Jenkins CI/CD</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card p-4">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Estado del Servicio</h3>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <span class="fw-bold text-secondary">Plataforma:</span>
+                        <span class="badge bg-success status-badge">Spring Boot 3</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <span class="fw-bold text-secondary">Infraestructura:</span>
+                        <span class="badge bg-primary status-badge">Azure Virtual Machine</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <span class="fw-bold text-secondary">Pipeline:</span>
+                        <span class="badge bg-warning text-dark status-badge">Jenkins</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-bold text-secondary">Estado:</span>
+                        <span class="badge bg-info status-badge">Activo y Corriendo 🚀</span>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="/api/usuarios" class="btn btn-outline-primary w-100">Ver API de Usuarios (JSON)</a>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="mt-5 text-muted">
+                <small>Desarrollado para práctica universitaria &copy; 2024</small>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
