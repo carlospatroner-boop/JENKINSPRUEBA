@@ -43,35 +43,34 @@ pipeline {
 
         stage('Deploy to Azure VM') {
             steps {
-                sshagent(credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                // Usamos withCredentials en lugar de sshagent para evitar el error de parseo en Windows
+                withCredentials([sshUserPrivateKey(credentialsId: "${SSH_CREDENTIALS_ID}", keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_USER')]) {
                     echo "Conectando a ${VM_IP}..."
 
                     script {
                         if (isUnix()) {
-                            // Entorno Linux (Jenkins en Linux)
-                            sh "ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_IP} 'mkdir -p ${REMOTE_DIR}'"
-                            sh "scp -o StrictHostKeyChecking=no target/${JAR_NAME} ${VM_USER}@${VM_IP}:${REMOTE_DIR}/${JAR_NAME}"
+                            sh 'chmod 600 $SSH_KEY_FILE'
+                            sh "ssh -o StrictHostKeyChecking=no -i \$SSH_KEY_FILE ${VM_USER}@${VM_IP} 'mkdir -p ${REMOTE_DIR}'"
+                            sh "scp -o StrictHostKeyChecking=no -i \$SSH_KEY_FILE target/${JAR_NAME} ${VM_USER}@${VM_IP}:${REMOTE_DIR}/${JAR_NAME}"
                             sh """
-                                ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_IP} '
+                                ssh -o StrictHostKeyChecking=no -i \$SSH_KEY_FILE ${VM_USER}@${VM_IP} '
                                     PID=\$(pgrep -f "${JAR_NAME}" || true)
                                     if [ -n "\$PID" ]; then kill -9 \$PID; fi
                                     nohup java -jar ${REMOTE_DIR}/${JAR_NAME} > ${REMOTE_DIR}/app.log 2>&1 &
                                 '
                             """
                         } else {
-                            // Entorno Windows (Jenkins en Windows)
-                            // Usamos 'bat' para invocar los comandos SSH/SCP
-                            // Asumimos que 'ssh' y 'scp' están en el PATH (vienen con Git)
+                            // Entorno Windows:
+                            // Usamos la llave temporal directamente con ssh -i
 
                             // 1. Crear directorio
-                            bat "ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_IP} \"mkdir -p ${REMOTE_DIR}\""
+                            bat "ssh -o StrictHostKeyChecking=no -i \"%SSH_KEY_FILE%\" ${VM_USER}@${VM_IP} \"mkdir -p ${REMOTE_DIR}\""
 
                             // 2. Copiar archivo
-                            bat "scp -o StrictHostKeyChecking=no target/${JAR_NAME} ${VM_USER}@${VM_IP}:${REMOTE_DIR}/${JAR_NAME}"
+                            bat "scp -o StrictHostKeyChecking=no -i \"%SSH_KEY_FILE%\" target/${JAR_NAME} ${VM_USER}@${VM_IP}:${REMOTE_DIR}/${JAR_NAME}"
 
-                            // 3. Ejecutar en remoto (comando simplificado para evitar problemas de escape en Windows CMD)
-                            // Usamos 'pkill' si está disponible o 'pgrep | xargs kill'
-                            bat "ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_IP} \"pkill -f ${JAR_NAME} || true && nohup java -jar ${REMOTE_DIR}/${JAR_NAME} > ${REMOTE_DIR}/app.log 2>&1 &\""
+                            // 3. Ejecutar en remoto
+                            bat "ssh -o StrictHostKeyChecking=no -i \"%SSH_KEY_FILE%\" ${VM_USER}@${VM_IP} \"pkill -f ${JAR_NAME} || true && nohup java -jar ${REMOTE_DIR}/${JAR_NAME} > ${REMOTE_DIR}/app.log 2>&1 &\""
                         }
                     }
                 }
