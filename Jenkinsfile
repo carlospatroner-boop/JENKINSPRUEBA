@@ -60,21 +60,24 @@ pipeline {
                             """
                         } else {
                             // Entorno Windows:
-                            // El error "UNPROTECTED PRIVATE KEY FILE" ocurre porque el archivo temporal tiene permisos muy abiertos.
-                            // Solución: Usar icacls para restringir permisos antes de usar la llave.
+                            // El usuario actual es SYSTEM (EAZY$), lo que complica icacls con %USERNAME%.
+                            // Solución: Copiar la llave a un archivo local 'key.pem' y asignar permisos explícitos a SYSTEM y Administradores.
 
-                            // 1. Restringir permisos del archivo de llave (solo SYSTEM y Administradores)
-                            // Usamos icacls para quitar herencia (/inheritance:r) y dar control total solo al usuario actual (/grant:r "%USERNAME%":F)
-                            bat "icacls \"%SSH_KEY_FILE%\" /inheritance:r /grant:r \"%USERNAME%\":F"
+                            // 1. Copiar la llave a un archivo temporal local
+                            bat 'copy /Y "%SSH_KEY_FILE%" key.pem'
 
-                            // 2. Crear directorio
-                            bat "ssh -o StrictHostKeyChecking=no -i \"%SSH_KEY_FILE%\" ${VM_USER}@${VM_IP} \"mkdir -p ${REMOTE_DIR}\""
+                            // 2. Restringir permisos usando SIDs universales (S-1-5-18 es SYSTEM, S-1-5-32-544 es Admins)
+                            // Primero quitamos herencia y borramos permisos existentes (/inheritance:r)
+                            // Luego damos control total a SYSTEM y Admins (/grant *S-1-5-18:F ...)
+                            bat 'icacls key.pem /inheritance:r /grant *S-1-5-18:F *S-1-5-32-544:F'
 
-                            // 3. Copiar archivo
-                            bat "scp -o StrictHostKeyChecking=no -i \"%SSH_KEY_FILE%\" target/${JAR_NAME} ${VM_USER}@${VM_IP}:${REMOTE_DIR}/${JAR_NAME}"
+                            // 3. Usar la nueva llave "key.pem"
+                            bat "ssh -o StrictHostKeyChecking=no -i key.pem ${VM_USER}@${VM_IP} \"mkdir -p ${REMOTE_DIR}\""
+                            bat "scp -o StrictHostKeyChecking=no -i key.pem target/${JAR_NAME} ${VM_USER}@${VM_IP}:${REMOTE_DIR}/${JAR_NAME}"
+                            bat "ssh -o StrictHostKeyChecking=no -i key.pem ${VM_USER}@${VM_IP} \"pkill -f ${JAR_NAME} || true && nohup java -jar ${REMOTE_DIR}/${JAR_NAME} > ${REMOTE_DIR}/app.log 2>&1 &\""
 
-                            // 4. Ejecutar en remoto
-                            bat "ssh -o StrictHostKeyChecking=no -i \"%SSH_KEY_FILE%\" ${VM_USER}@${VM_IP} \"pkill -f ${JAR_NAME} || true && nohup java -jar ${REMOTE_DIR}/${JAR_NAME} > ${REMOTE_DIR}/app.log 2>&1 &\""
+                            // 4. Borrar llave temporal
+                            bat 'del key.pem'
                         }
                     }
                 }
